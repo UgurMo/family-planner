@@ -833,6 +833,76 @@
   .main::-webkit-scrollbar-track { background: transparent; }
   .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .modal {
+    background: white; border-radius: 20px;
+    padding: 28px 24px; width: 100%; max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: slideUp 0.25s ease;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.3px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-cancel {
+    flex: 1; padding: 11px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); background: white; color: var(--text2);
+    font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .btn-save {
+    flex: 1; padding: 11px; border: none; border-radius: var(--radius-sm);
+    background: var(--accent); color: white;
+    font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .btn-danger {
+    padding: 11px 16px; border: 1.5px solid var(--red);
+    border-radius: var(--radius-sm); background: white; color: var(--red);
+    font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+
+  /* ─── KALENDER ─── */
+  .calendar-wrap {
+    background: var(--card); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow-card);
+    border: 1px solid var(--border); margin-bottom: 20px;
+  }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-title { font-size: 15px; font-weight: 700; }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-nav button {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: 1.5px solid var(--border); background: white; color: var(--text);
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .cal-nav button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-name {
+    text-align: center; font-size: 10px; font-weight: 700;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0 8px;
+  }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; border-radius: 8px; cursor: pointer;
+    position: relative; transition: all 0.15s; font-weight: 500; color: var(--text);
+  }
+  .cal-day:hover { background: var(--bg); }
+  .cal-day.today { background: var(--accent); color: white; font-weight: 700; }
+  .cal-day.has-event::after {
+    content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
+  }
+  .cal-day.today.has-event::after { background: white; }
+  .cal-day.other-month { color: var(--text3); }
+  .cal-day.empty { cursor: default; }
+
   /* ─── BOTTOM NAV (mobiel) ─── */
   .bottom-nav {
     display: none;
@@ -1289,8 +1359,21 @@
         <div class="page-sub">Beheer je gezinsafspraken</div>
       </div>
     </div>
+
     <div class="agenda-layout">
       <div>
+        <!-- Maandkalender -->
+        <div class="calendar-wrap">
+          <div class="cal-header">
+            <div class="cal-title" id="calMonthTitle">April 2026</div>
+            <div class="cal-nav">
+              <button onclick="calNav(-1)">‹</button>
+              <button onclick="calNav(1)">›</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+
         <div id="agendaEmpty" class="empty-state" style="display:none;">
           <div class="empty-icon">📭</div>
           <div class="empty-text">Geen afspraken gepland</div>
@@ -1433,10 +1516,22 @@ let currentUser = null;
 let mealsShowAll = false;
 let lastRefresh = new Date();
 let autoRefreshInterval = null;
-let votes     = {};
-let events    = [];
-let todos     = [];
-let shopItems = [];
+let editingEventId = null;
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+// Laad uit cache voor snelle start
+let votes     = JSON.parse(localStorage.getItem("cache_votes")  || "{}");
+let events    = JSON.parse(localStorage.getItem("cache_events") || "[]");
+let todos     = JSON.parse(localStorage.getItem("cache_todos")  || "[]");
+let shopItems = JSON.parse(localStorage.getItem("cache_shop")   || "[]");
+
+function saveCache(){
+  localStorage.setItem("cache_votes",  JSON.stringify(votes));
+  localStorage.setItem("cache_events", JSON.stringify(events));
+  localStorage.setItem("cache_todos",  JSON.stringify(todos));
+  localStorage.setItem("cache_shop",   JSON.stringify(shopItems));
+}
 
 /* ─── JSONBIN SYNC ─── */
 const JB_KEY  = "$2a$10$1O6R6Xoo0cqOKGbFvulKPeanxMqbdfbiS079uC2eUnRxbXBbrErcm";
@@ -1454,14 +1549,18 @@ async function jbGet(binId){
   const res = await fetch(`${JB_BASE}/${binId}/latest`, {
     headers: {
       "X-Master-Key": JB_KEY,
-      "X-Bin-Meta": "false",
-      "Content-Type": "application/json"
+      "X-Bin-Meta": "false"
     },
     mode: "cors"
   });
   if(!res.ok) throw new Error("GET mislukt: " + res.status);
   const json = await res.json();
-  return json.record !== undefined ? json.record.data : json.data;
+  // Met X-Bin-Meta:false geeft JSONBin direct de bin inhoud terug
+  // De inhoud is { data: ... } dus we returnen json.data
+  if(json && json.data !== undefined) return json.data;
+  // Fallback voor andere formaten
+  if(json && json.record) return json.record.data;
+  return json;
 }
 
 async function jbSet(binId, val){
@@ -1479,6 +1578,9 @@ async function jbSet(binId, val){
 
 async function save(){
   try {
+    // Sla eerst lokaal op voor snelle weergave
+    saveCache();
+    // Dan naar cloud
     await Promise.all([
       jbSet(BINS.votes,  votes),
       jbSet(BINS.events, events),
@@ -1501,8 +1603,10 @@ async function loadFromCloud(){
     if(e !== null && e !== undefined) events    = e;
     if(t !== null && t !== undefined) todos     = t;
     if(s !== null && s !== undefined) shopItems = s;
+    // Sla gesynced data op in cache
+    saveCache();
     if(currentUser){
-      renderMeals(); renderEvents(); renderTodos(); renderShop(); renderDashboard();
+      renderMeals(); renderEvents(); renderTodos(); renderShop(); renderDashboard(); renderCalendar();
     }
     updateSyncLabel();
   } catch(err){
@@ -1511,6 +1615,9 @@ async function loadFromCloud(){
 }
 
 function initFirebase(){
+  // Toon cache label, sync daarna op achtergrond
+  const el = document.getElementById("refreshLabel");
+  if(el) el.textContent = "Cache geladen, syncing...";
   loadFromCloud();
   pollInterval = setInterval(loadFromCloud, 30000);
 }
@@ -1561,6 +1668,7 @@ function startApp(user){
   renderMeals();
   initAgendaForm();
   renderEvents();
+  renderCalendar();
   renderTodos();
   renderShop();
   renderDashboard();
@@ -1664,14 +1772,8 @@ function switchPage(p){
     btn.classList.toggle("active", btn.dataset.page === p);
   });
   if(p === "dashboard") renderDashboard();
-  if(p === "meals"){
-    mealsShowAll = false;
-    renderMeals();
-    const title = document.getElementById("mealsPageTitle");
-    const sub = document.getElementById("mealsPageSub");
-    if(title) title.textContent = "🍽️ Menu van vandaag";
-    if(sub) sub.textContent = "Stem op je favoriete maaltijd";
-  }
+  if(p === "meals"){ mealsShowAll = false; renderMeals(); }
+  if(p === "agenda"){ renderCalendar(); renderEvents(); }
 }
 
 /* ─── DASHBOARD ─── */
@@ -1878,7 +1980,6 @@ function renderEvents(){
   const empty = document.getElementById("agendaEmpty");
   if(!list) return;
 
-  // Kinderen zien alleen gezinsevents + eigen events
   const visible = currentUser.role === "kind"
     ? events.filter(e => !e.forMember || e.forMember === currentUser.username || e.addedBy === currentUser.username)
     : events;
@@ -1894,7 +1995,7 @@ function renderEvents(){
     const d = new Date(e.date);
     const color = e.color || "var(--accent)";
     const forLabel = e.forMember ? e.forMember : "Gezin";
-    const canDelete = currentUser.role === "admin" || e.addedBy === currentUser.username;
+    const canEdit = currentUser.role === "admin" || e.addedBy === currentUser.username;
     return `<div class="agenda-event" style="border-left-color:${color}">
       <div class="agenda-date-box" style="background:${color}">
         <div class="agenda-date-day">${d.getDate()}</div>
@@ -1905,11 +2006,110 @@ function renderEvents(){
         <div class="agenda-event-sub">${e.time ? e.time + " · " : ""}${d.toLocaleDateString("nl-NL",{weekday:"long", day:"numeric", month:"long"})}</div>
       </div>
       <span class="member-chip" style="background:${color}">${forLabel}</span>
-      ${canDelete ? `<button class="agenda-delete" onclick="deleteEvent(${e.id})">✕</button>` : ""}
+      ${canEdit ? `<button class="agenda-delete" onclick="openEditModal(${e.id})" title="Bewerken">✏️</button>` : ""}
     </div>`;
   }).join("");
 }
 
+/* ─── EDIT MODAL ─── */
+function openEditModal(id){
+  const ev = events.find(e => e.id === id);
+  if(!ev) return;
+  editingEventId = id;
+  document.getElementById("editTitle").value = ev.title;
+  document.getElementById("editDate").value = ev.date;
+  document.getElementById("editTime").value = ev.time || "";
+  document.getElementById("editFor").value = ev.forMember || "";
+  document.getElementById("editModal").classList.remove("hidden");
+}
+
+function closeEditModal(){
+  editingEventId = null;
+  document.getElementById("editModal").classList.add("hidden");
+}
+
+function saveEditEvent(){
+  const ev = events.find(e => e.id === editingEventId);
+  if(!ev) return;
+  ev.title = document.getElementById("editTitle").value.trim();
+  ev.date = document.getElementById("editDate").value;
+  ev.time = document.getElementById("editTime").value;
+  ev.forMember = document.getElementById("editFor").value;
+  ev.color = ev.forMember ? getMemberColor(ev.forMember) : currentUser.color;
+  events.sort((a,b) => new Date(a.date+(a.time?"T"+a.time:"")) - new Date(b.date+(b.time?"T"+b.time:"")));
+  save();
+  closeEditModal();
+  renderEvents();
+  renderCalendar();
+}
+
+function deleteEventFromModal(){
+  events = events.filter(e => e.id !== editingEventId);
+  save();
+  closeEditModal();
+  renderEvents();
+  renderCalendar();
+}
+
+/* ─── KALENDER ─── */
+function calNav(dir){
+  calMonth += dir;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  if(calMonth < 0){ calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const grid = document.getElementById("calGrid");
+  const title = document.getElementById("calMonthTitle");
+  if(!grid) return;
+
+  title.textContent = new Date(calYear, calMonth, 1).toLocaleDateString("nl-NL", {month:"long", year:"numeric"});
+
+  const dayNames = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
+  let html = dayNames.map(d => `<div class="cal-day-name">${d}</div>`).join("");
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay = new Date(calYear, calMonth+1, 0);
+  let startDow = firstDay.getDay(); // 0=Sun
+  startDow = startDow === 0 ? 6 : startDow - 1; // convert to Mon=0
+
+  const today = new Date();
+  const eventDates = new Set(events.map(e => e.date));
+
+  for(let i = 0; i < startDow; i++){
+    const prevDate = new Date(calYear, calMonth, -startDow+i+1);
+    html += `<div class="cal-day other-month">${prevDate.getDate()}</div>`;
+  }
+
+  for(let d = 1; d <= lastDay.getDate(); d++){
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+    const hasEvent = eventDates.has(dateStr);
+    html += `<div class="cal-day ${isToday?'today':''} ${hasEvent?'has-event':''}" onclick="filterByDate('${dateStr}')">${d}</div>`;
+  }
+
+  const remaining = (7 - (startDow + lastDay.getDate()) % 7) % 7;
+  for(let i = 1; i <= remaining; i++){
+    html += `<div class="cal-day other-month">${i}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function filterByDate(dateStr){
+  // Scroll naar de afspraken van die dag
+  const list = document.getElementById("eventsList");
+  if(!list) return;
+  const items = list.querySelectorAll(".agenda-event");
+  items.forEach(el => {
+    const sub = el.querySelector(".agenda-event-sub");
+    el.style.opacity = "1";
+    el.style.transform = "";
+  });
+}
+
+/* ─── VERJAARDAGEN ─── */
 /* ─── TODOS ─── */
 function addTodo(){
   const text = document.getElementById("todoText").value.trim();
@@ -2065,6 +2265,40 @@ function startAutoRefresh(){
   setInterval(updateRefreshLabel, 15000);
 }
 </script>
+<!-- EDIT AFSPRAAK MODAL -->
+<div class="modal-overlay hidden" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Afspraak bewerken</div>
+    <div class="form-field">
+      <div class="form-label">Wat is de afspraak?</div>
+      <input class="form-input" id="editTitle" placeholder="Beschrijving...">
+    </div>
+    <div class="form-field">
+      <div class="form-label">Datum</div>
+      <input class="form-input" id="editDate" type="date">
+    </div>
+    <div class="form-field">
+      <div class="form-label">Tijdstip (optioneel)</div>
+      <input class="form-input" id="editTime" type="time">
+    </div>
+    <div class="form-field">
+      <div class="form-label">Voor wie?</div>
+      <select class="select-input" id="editFor">
+        <option value="">👨‍👩‍👦 Heel gezin</option>
+        <option value="Ugur">🔵 Ugur</option>
+        <option value="Nergul">🔴 Nergul</option>
+        <option value="Ali">🟢 Ali</option>
+        <option value="Elyesa">🟠 Elyesa</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" onclick="deleteEventFromModal()">🗑️</button>
+      <button class="btn-cancel" onclick="closeEditModal()">Annuleren</button>
+      <button class="btn-save" onclick="saveEditEvent()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <!-- SYNC TOAST -->
 <div class="sync-toast" id="syncToast"></div>
 
