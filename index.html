@@ -1366,66 +1366,81 @@ let events    = [];
 let todos     = [];
 let shopItems = [];
 
-/* ─── GITHUB API SYNC ─── */
-const GH_TOKEN = "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";
-const GH_REPO  = "UgurMo/family-planner";
-const GH_FILE  = "data.json";
-const GH_API   = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+/* ─── JSONBIN SYNC ─── */
+const JB_KEY  = "$2a$10$1O6R6Xoo0cqOKGbFvulKPeanxMqbdfbiS079uC2eUnRxbXBbrErcm";
+const JB_BASE = "https://api.jsonbin.io/v3/b";
+const BINS = {
+  votes:  "69cfbb30856a682189f77fdc",
+  events: "69cfbb49aaba882197bfadf1",
+  todos:  "69cfbb5d856a682189f780a7",
+  shop:   "69cfbb7daaba882197bfaeb8"
+};
 let db = true;
 let pollInterval = null;
-let ghFileSha = null;
 
-async function ghLoad(){
-  try {
-    const res = await fetch(GH_API, {
-      headers: {
-        "Authorization": `token ${GH_TOKEN}`,
-        "Accept": "application/vnd.github.v3+json"
-      }
-    });
-    if(!res.ok) return;
-    const json = await res.json();
-    ghFileSha = json.sha;
-    const content = JSON.parse(atob(json.content.replace(/\n/g,"")));
-    if(content.votes)     votes     = content.votes;
-    if(content.events)    events    = content.events;
-    if(content.todos)     todos     = content.todos;
-    if(content.shopItems) shopItems = content.shopItems;
-    if(currentUser){
-      renderMeals(); renderEvents(); renderTodos(); renderShop(); renderDashboard();
-    }
-    updateSyncLabel();
-  } catch(e){ console.warn("Laden fout:", e); }
+async function jbGet(binId){
+  const res = await fetch(`${JB_BASE}/${binId}/latest`, {
+    headers: {
+      "X-Master-Key": JB_KEY,
+      "X-Bin-Meta": "false",
+      "Content-Type": "application/json"
+    },
+    mode: "cors"
+  });
+  if(!res.ok) throw new Error("GET mislukt: " + res.status);
+  const json = await res.json();
+  return json.record !== undefined ? json.record.data : json.data;
+}
+
+async function jbSet(binId, val){
+  const res = await fetch(`${JB_BASE}/${binId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": JB_KEY
+    },
+    mode: "cors",
+    body: JSON.stringify({ data: val })
+  });
+  if(!res.ok) throw new Error("PUT mislukt: " + res.status);
 }
 
 async function save(){
   try {
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify({
-      votes, events, todos, shopItems
-    }))));
-    const body = {
-      message: "sync",
-      content,
-      ...(ghFileSha ? { sha: ghFileSha } : {})
-    };
-    const res = await fetch(GH_API, {
-      method: "PUT",
-      headers: {
-        "Authorization": `token ${GH_TOKEN}`,
-        "Accept": "application/vnd.github.v3+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-    const json = await res.json();
-    if(json.content) ghFileSha = json.content.sha;
+    await Promise.all([
+      jbSet(BINS.votes,  votes),
+      jbSet(BINS.events, events),
+      jbSet(BINS.todos,  todos),
+      jbSet(BINS.shop,   shopItems),
+    ]);
     updateSyncLabel();
   } catch(e){ console.warn("Opslaan fout:", e); }
 }
 
+async function loadFromCloud(){
+  try {
+    const [v, e, t, s] = await Promise.all([
+      jbGet(BINS.votes),
+      jbGet(BINS.events),
+      jbGet(BINS.todos),
+      jbGet(BINS.shop),
+    ]);
+    if(v !== null && v !== undefined) votes     = v;
+    if(e !== null && e !== undefined) events    = e;
+    if(t !== null && t !== undefined) todos     = t;
+    if(s !== null && s !== undefined) shopItems = s;
+    if(currentUser){
+      renderMeals(); renderEvents(); renderTodos(); renderShop(); renderDashboard();
+    }
+    updateSyncLabel();
+  } catch(err){
+    console.warn("Sync fout:", err);
+  }
+}
+
 function initFirebase(){
-  ghLoad();
-  pollInterval = setInterval(ghLoad, 30000);
+  loadFromCloud();
+  pollInterval = setInterval(loadFromCloud, 30000);
 }
 
 function updateSyncLabel(){
