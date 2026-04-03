@@ -1123,7 +1123,7 @@
   <div class="refresh-bar" id="refreshBar">
     <div class="refresh-bar-left">
       <div class="refresh-dot"></div>
-      <span id="refreshLabel">Laatste update: zojuist</span>
+      <span id="refreshLabel">Verbinding maken met Firebase...</span>
     </div>
     <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
       <span class="refresh-icon">↻</span> Verversen
@@ -1331,7 +1331,7 @@
 
 </div>
 
-<script>
+<script type="module">
 const users = [
   {username:"Ugur",   password:"Mamak", role:"admin",   color:"#0071e3"},
   {username:"Nergul", password:"Mamak", role:"admin",   color:"#ff375f"},
@@ -1356,17 +1356,84 @@ let currentUser = null;
 let mealsShowAll = false;
 let lastRefresh = new Date();
 let autoRefreshInterval = null;
-let votes = JSON.parse(localStorage.getItem("fp_votes") || "{}");
-let events = JSON.parse(localStorage.getItem("fp_events") || "[]");
-let todos = JSON.parse(localStorage.getItem("fp_todos") || "[]");
-let shopItems = JSON.parse(localStorage.getItem("fp_shop") || "[]");
+let votes     = {};
+let events    = [];
+let todos     = [];
+let shopItems = [];
 
-function save(){
-  localStorage.setItem("fp_votes", JSON.stringify(votes));
-  localStorage.setItem("fp_events", JSON.stringify(events));
-  localStorage.setItem("fp_todos", JSON.stringify(todos));
-  localStorage.setItem("fp_shop", JSON.stringify(shopItems));
+/* ─── FIREBASE ─── */
+let db = null;
+const FB_VOTES  = "fp_votes";
+const FB_EVENTS = "fp_events";
+const FB_TODOS  = "fp_todos";
+const FB_SHOP   = "fp_shop";
+
+async function initFirebase(){
+  const { initializeApp }    = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const { getFirestore, doc, setDoc, onSnapshot, collection, getDocs }
+    = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCAIiqWIP4lKfSzJi8EPLUyNQJPEH0ZDPQ",
+    authDomain: "mamak-family-planner.firebaseapp.com",
+    projectId: "mamak-family-planner",
+    storageBucket: "mamak-family-planner.firebasestorage.app",
+    messagingSenderId: "485148688347",
+    appId: "1:485148688347:web:397a7ac4ea6ddfacdbb1fe"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+
+  // Realtime listeners — zodra iemand anders iets opslaat, update jij automatisch
+  onSnapshot(doc(db, "planner", FB_VOTES), snap => {
+    if(snap.exists()){ votes = snap.data().data || {}; }
+    if(currentUser){ renderMeals(); renderDashboard(); }
+    updateSyncLabel();
+  });
+
+  onSnapshot(doc(db, "planner", FB_EVENTS), snap => {
+    if(snap.exists()){ events = snap.data().data || []; }
+    if(currentUser){ renderEvents(); renderDashboard(); }
+    updateSyncLabel();
+  });
+
+  onSnapshot(doc(db, "planner", FB_TODOS), snap => {
+    if(snap.exists()){ todos = snap.data().data || []; }
+    if(currentUser){ renderTodos(); renderDashboard(); }
+    updateSyncLabel();
+  });
+
+  onSnapshot(doc(db, "planner", FB_SHOP), snap => {
+    if(snap.exists()){ shopItems = snap.data().data || []; }
+    if(currentUser){ renderShop(); renderDashboard(); }
+    updateSyncLabel();
+  });
+
+  window._fbSetDoc = (key, val) => setDoc(doc(db, "planner", key), { data: val });
 }
+
+function updateSyncLabel(){
+  lastRefresh = new Date();
+  const el = document.getElementById("refreshLabel");
+  if(el) el.textContent = "Realtime sync actief ✓";
+}
+
+async function save(){
+  if(!window._fbSetDoc) return; // Firebase nog niet klaar
+  await Promise.all([
+    window._fbSetDoc(FB_VOTES,  votes),
+    window._fbSetDoc(FB_EVENTS, events),
+    window._fbSetDoc(FB_TODOS,  todos),
+    window._fbSetDoc(FB_SHOP,   shopItems),
+  ]);
+}
+
+// Init Firebase meteen bij laden
+initFirebase().catch(e => {
+  console.error("Firebase init mislukt:", e);
+  showToast("⚠️ Geen verbinding met Firebase");
+});
 
 /* ─── KLOK ─── */
 const dagNamen = ["Zondag","Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag"];
@@ -1879,58 +1946,41 @@ function renderShop(){
 document.getElementById("evDate").min = new Date().toISOString().split("T")[0];
 
 /* ─── REFRESH & SYNC ─── */
-function reloadData(){
-  votes     = JSON.parse(localStorage.getItem("fp_votes")  || "{}");
-  events    = JSON.parse(localStorage.getItem("fp_events") || "[]");
-  todos     = JSON.parse(localStorage.getItem("fp_todos")  || "[]");
-  shopItems = JSON.parse(localStorage.getItem("fp_shop")   || "[]");
-}
-
-function refreshAll(silent){
-  reloadData();
-  renderMeals();
-  renderEvents();
-  renderTodos();
-  renderShop();
-  renderDashboard();
-  lastRefresh = new Date();
-  updateRefreshLabel();
-  if(!silent) showToast("✓ Bijgewerkt");
-}
-
 function manualRefresh(){
   const btn = document.getElementById("refreshBtn");
   btn.classList.add("spinning");
   setTimeout(() => {
-    refreshAll(false);
+    renderMeals();
+    renderEvents();
+    renderTodos();
+    renderShop();
+    renderDashboard();
+    lastRefresh = new Date();
     btn.classList.remove("spinning");
-  }, 500);
+    showToast("✓ Bijgewerkt");
+  }, 400);
 }
 
 function updateRefreshLabel(){
   const el = document.getElementById("refreshLabel");
   if(!el) return;
   const diff = Math.round((new Date() - lastRefresh) / 1000);
-  if(diff < 10) el.textContent = "Laatste update: zojuist";
-  else if(diff < 60) el.textContent = `Laatste update: ${diff}s geleden`;
-  else el.textContent = `Laatste update: ${Math.round(diff/60)}m geleden`;
+  if(diff < 10) el.textContent = "Realtime sync actief ✓";
+  else el.textContent = `Realtime sync actief ✓`;
 }
 
 function showToast(msg){
   const t = document.getElementById("syncToast");
+  if(!t) return;
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 2200);
 }
 
 function startAutoRefresh(){
-  if(autoRefreshInterval) clearInterval(autoRefreshInterval);
-  // Auto-refresh elke 30 seconden
-  autoRefreshInterval = setInterval(() => {
-    refreshAll(true); // stil, geen toast
-  }, 30000);
-  // Label elke 10 seconden bijwerken
-  setInterval(updateRefreshLabel, 10000);
+  // Niet meer nodig met Firebase realtime listeners
+  // Label periodiek refreshen
+  setInterval(updateRefreshLabel, 15000);
 }
 </script>
 <!-- SYNC TOAST -->
