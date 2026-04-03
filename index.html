@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mamak Family Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --card2: #f9f9fb;
+    --accent: #0071e3;
+    --accent2: #34aadc;
+    --green: #30d158;
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --text: #1c1c1e;
+    --text2: #6e6e73;
+    --text3: #aeaeb2;
+    --border: #e5e5ea;
+    --sidebar-bg: #1c1c1e;
+    --sidebar-text: #f2f2f7;
+    --shadow: 0 2px 20px rgba(0,0,0,0.07);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --radius: 16px;
+    --radius-sm: 10px;
+
+    /* Lid-kleuren */
+    --color-ugur: #0071e3;
+    --color-nergul: #ff375f;
+    --color-ali: #30d158;
+    --color-elyesa: #ff9f0a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: 240px;
+    background: var(--sidebar-bg);
+    display: none;
+    flex-direction: column;
+    padding: 32px 16px 24px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 8px;
+  }
+
+  .sidebar-logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #0071e3, #34aadc);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .sidebar-logo-text {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: white;
+    letter-spacing: -0.3px;
+  }
+
+  .sidebar-logo-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 1px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+    padding: 12px 10px 6px;
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-btn:hover { background: rgba(255,255,255,0.07); color: white; }
+  .nav-btn.active { background: rgba(255,255,255,0.12); color: white; }
+
+  .nav-btn .nav-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .nav-btn[data-page="dashboard"] .nav-icon { background: rgba(0,113,227,0.3); }
+  .nav-btn[data-page="meals"] .nav-icon { background: rgba(255,159,10,0.3); }
+  .nav-btn[data-page="agenda"] .nav-icon { background: rgba(52,170,220,0.3); }
+  .nav-btn[data-page="todos"] .nav-icon { background: rgba(48,209,88,0.3); }
+  .nav-btn[data-page="boodschappen"] .nav-icon { background: rgba(255,69,58,0.3); }
+
+  .sidebar-user {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.06);
+  }
+
+  .user-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0071e3, #30d158);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+
+  .user-name { font-size: 13px; font-weight: 600; color: white; }
+  .user-role { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+
+  /* ─── MAIN ─── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+  }
+
+  .page-header {
+    margin-bottom: 28px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .page-sub {
+    font-size: 14px;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text2);
+    margin-bottom: 14px;
+  }
+
+  /* ─── LOGIN ─── */
+  #login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    background: linear-gradient(135deg, #f2f2f7 0%, #e8e8ef 100%);
+  }
+
+  .login-card {
+    background: white;
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 380px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    animation: slideUp 0.4s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-logo {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #0071e3, #34aadc);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; margin: 0 auto 24px;
+  }
+
+  .login-title {
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.4px;
+    margin-bottom: 4px;
+  }
+
+  .login-sub {
+    text-align: center;
+    color: var(--text2);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .field-wrap { margin-bottom: 16px; }
+
+  .field-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+
+  .field-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.1);
+  }
+
+  .login-error {
+    background: rgba(255,69,58,0.08);
+    border: 1px solid rgba(255,69,58,0.2);
+    color: var(--red);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .btn-primary:hover { background: #0062c4; }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* ─── HIDDEN ─── */
+  .hidden { display: none !important; }
+
+  /* ─── APP LAYOUT ─── */
+  #app { width: 100%; }
+
+  /* ─── DASHBOARD ─── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .dash-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+
+  .stat-icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+  }
+
+  .stat-label { font-size: 13px; color: var(--text2); }
+
+  .weather-card {
+    background: linear-gradient(135deg, #0071e3 0%, #34aadc 100%);
+    border-radius: var(--radius);
+    padding: 22px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(0,113,227,0.3);
+    grid-column: span 2;
+  }
+
+  .weather-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .weather-city { font-size: 13px; opacity: 0.8; margin-bottom: 2px; }
+  .weather-temp { font-size: 48px; font-weight: 300; letter-spacing: -2px; }
+  .weather-desc { font-size: 14px; opacity: 0.85; margin-top: 2px; }
+  .weather-icon { font-size: 56px; }
+
+  .weather-details {
+    display: flex;
+    gap: 20px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 12px;
+    margin-top: 4px;
+  }
+
+  .weather-detail { font-size: 13px; opacity: 0.85; }
+  .weather-detail span { display: block; font-size: 11px; opacity: 0.65; margin-bottom: 2px; }
+
+  .today-meal-card {
+    background: linear-gradient(135deg, #ff9f0a, #ff6b35);
+    border-radius: var(--radius);
+    padding: 22px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255,159,10,0.3);
+    transition: transform 0.15s;
+    grid-column: span 2;
+  }
+
+  .today-meal-card:hover { transform: translateY(-2px); }
+
+  /* ─── UPCOMING EVENTS ─── */
+  .event-item {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .event-item:last-child { border-bottom: none; }
+
+  .event-date-badge {
+    width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .event-day { font-size: 20px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .event-month { font-size: 10px; color: var(--text2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }
+  .event-title { font-size: 14px; font-weight: 500; }
+  .event-weekday { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* ─── MAALTIJDEN ─── */
+  .meals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .day-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+
+  .day-label {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .today-badge {
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--accent);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+
+  .meal-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--bg);
+  }
+
+  .meal-option:hover { border-color: var(--accent); }
+
+  .meal-option.voted {
+    border-color: var(--accent);
+    background: rgba(0,113,227,0.06);
+  }
+
+  .meal-option.winner {
+    border-color: var(--green);
+    background: rgba(48,209,88,0.06);
+  }
+
+  .meal-name { font-size: 14px; font-weight: 500; }
+  .meal-voters { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  .meal-actions { display: flex; gap: 6px; align-items: center; }
+
+  .vote-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .vote-btn:hover { background: var(--accent); color: white; }
+  .vote-btn.active { background: var(--accent); color: white; }
+
+  .override-btn {
+    padding: 5px 8px;
+    border-radius: 20px;
+    border: 1.5px solid var(--orange);
+    background: transparent;
+    color: var(--orange);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .override-btn:hover { background: var(--orange); color: white; }
+
+  .vote-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    min-width: 20px;
+    text-align: center;
+  }
+
+  /* ─── AGENDA ─── */
+  .agenda-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+  }
+
+  .events-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .agenda-event {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.15s;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .agenda-event:hover { transform: translateX(3px); }
+
+  .agenda-date-box {
+    min-width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--accent);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .agenda-date-day { font-size: 20px; font-weight: 700; line-height: 1; }
+  .agenda-date-month { font-size: 10px; font-weight: 600; text-transform: uppercase; opacity: 0.85; margin-top: 1px; }
+
+  .agenda-event-title { font-size: 15px; font-weight: 600; }
+  .agenda-event-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  .agenda-delete {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+
+  .agenda-delete:hover { color: var(--red); background: rgba(255,69,58,0.08); }
+
+  /* Gekleurde linkerrand agenda-event per lid */
+  .agenda-event { border-left: 4px solid var(--accent); }
+
+  /* Lid-kleur chip */
+  .member-chip {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 20px;
+    color: white;
+    flex-shrink: 0;
+    letter-spacing: 0.2px;
+  }
+
+  /* Dashboard event-item kleurstip */
+  .event-color-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ─── FORM CARD ─── */
+  .form-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+  }
+
+  .form-card .card-title { margin-bottom: 16px; }
+
+  .form-field { margin-bottom: 12px; }
+
+  .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.1);
+  }
+
+  .btn-add {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px;
+  }
+
+  .btn-add:hover { background: #0062c4; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-text { font-weight: 500; margin-bottom: 4px; }
+  .empty-sub { font-size: 13px; color: var(--text3); }
+
+  /* ─── TODOS ─── */
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    animation: slideIn 0.2s ease;
+  }
+
+  .todo-item:last-child { border-bottom: none; }
+
+  .todo-check {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+    background: white;
+  }
+
+  .todo-check.done { background: var(--green); border-color: var(--green); color: white; }
+
+  .todo-text { font-size: 14px; flex: 1; }
+  .todo-text.done { text-decoration: line-through; color: var(--text3); }
+
+  .todo-assignee {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--bg);
+    color: var(--text2);
+  }
+
+  .todo-delete {
+    background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 14px;
+    padding: 4px; border-radius: 6px; transition: all 0.15s;
+  }
+
+  .todo-delete:hover { color: var(--red); background: rgba(255,69,58,0.08); }
+
+  /* ─── BOODSCHAPPEN ─── */
+  .shop-category {
+    margin-bottom: 20px;
+  }
+
+  .shop-cat-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+
+  .shop-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+    animation: slideIn 0.2s ease;
+  }
+
+  .shop-check {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; transition: all 0.15s; background: white;
+  }
+
+  .shop-check.bought { background: var(--green); border-color: var(--green); color: white; }
+
+  .shop-item-name { font-size: 14px; flex: 1; }
+  .shop-item-name.bought { text-decoration: line-through; color: var(--text3); }
+
+  .shop-qty {
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .shop-delete {
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 13px; padding: 3px;
+    border-radius: 5px; transition: all 0.15s;
+  }
+
+  .shop-delete:hover { color: var(--red); background: rgba(255,69,58,0.08); }
+
+  /* ─── SCROLLBAR ─── */
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ─── BOTTOM NAV (mobiel) ─── */
+  .bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    z-index: 100;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .bottom-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 10px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottom-nav-btn .bnav-icon { font-size: 22px; line-height: 1; }
+  .bottom-nav-btn .bnav-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.2px;
+  }
+
+  .bottom-nav-btn.active .bnav-label { color: var(--accent); }
+  .bottom-nav-btn.active .bnav-icon { transform: scale(1.1); }
+
+  /* ─── RESPONSIVE TABLET ─── */
+  @media (max-width: 900px) {
+    .sidebar { width: 200px; }
+    .agenda-layout { grid-template-columns: 1fr; }
+    .dash-grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ─── RESPONSIVE MOBIEL ─── */
+  @media (max-width: 650px) {
+    body { flex-direction: column; overflow: hidden; }
+
+    .sidebar { display: none !important; }
+
+    .bottom-nav { display: flex; }
+
+    #app { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    .main {
+      padding: 16px 16px 100px;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .dash-grid { grid-template-columns: 1fr; gap: 12px; }
+    .dash-grid-3 { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .weather-card { grid-column: span 2; }
+    .today-meal-card { grid-column: span 2; }
+    .meals-grid { grid-template-columns: 1fr; }
+    .agenda-layout { grid-template-columns: 1fr; gap: 16px; }
+
+    .page-title { font-size: 22px; }
+    .page-header { margin-bottom: 18px; }
+
+    .weather-temp { font-size: 38px; }
+    .weather-icon { font-size: 42px; }
+
+    .stat-card { padding: 14px; }
+    .stat-value { font-size: 22px; }
+    .stat-icon { width: 34px; height: 34px; font-size: 15px; margin-bottom: 10px; }
+
+    .login-card { width: 92vw; padding: 32px 24px; }
+    .login-title { font-size: 20px; }
+
+    .form-card { position: static; }
+
+    /* Maaltijden: compactere optie-rijen op mobiel */
+    .meal-option { flex-wrap: wrap; gap: 6px; }
+    .meal-actions { margin-left: auto; }
+
+    /* Agenda event wat smaller */
+    .agenda-event { padding: 12px 14px; }
+    .agenda-date-box { min-width: 44px; height: 44px; }
+    .agenda-date-day { font-size: 17px; }
+
+    /* Dashboard events */
+    .event-item { gap: 10px; }
+
+    /* Card padding kleiner */
+    .card { padding: 14px; }
+    .day-card { padding: 14px; }
+
+    /* Grotere touch targets */
+    .vote-btn { padding: 7px 14px; font-size: 13px; }
+    .override-btn { padding: 7px 10px; }
+    .todo-check { width: 26px; height: 26px; font-size: 13px; }
+    .shop-check { width: 24px; height: 24px; font-size: 12px; }
+    .agenda-delete { padding: 8px; font-size: 18px; }
+    .todo-delete { padding: 8px; font-size: 16px; }
+  }
+
+  @media (max-width: 360px) {
+    .dash-grid-3 { grid-template-columns: 1fr; }
+    .weather-card { grid-column: span 1; }
+    .today-meal-card { grid-column: span 1; }
+    .bottom-nav-btn { padding: 6px 8px; }
+    .bottom-nav-btn .bnav-label { font-size: 9px; }
+  }
+
+  /* ─── REFRESH BAR ─── */
+  .refresh-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: rgba(0,113,227,0.05);
+    border-bottom: 1px solid rgba(0,113,227,0.1);
+    font-size: 12px;
+    color: var(--text2);
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .refresh-bar-left { display: flex; align-items: center; gap: 6px; }
+
+  .refresh-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 2s infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  .refresh-btn {
+    display: flex; align-items: center; gap: 5px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .refresh-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .refresh-btn:active { transform: scale(0.95); }
+
+  .refresh-icon { display: inline-block; transition: transform 0.3s; }
+  .refresh-btn.spinning .refresh-icon { animation: spin-icon 0.6s linear infinite; }
+  @keyframes spin-icon { to { transform: rotate(360deg); } }
+
+  .sync-toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: #1c1c1e;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 9999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .sync-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 650px) {
+    .refresh-bar { padding: 7px 12px; }
+    .sync-toast { bottom: 78px; }
+  }
+
+  .select-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+
+  .select-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.1);
+  }
+
+  /* ─── DATETIME HEADER ─── */
+  .datetime-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+
+  .datetime-day {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .datetime-right { text-align: right; }
+
+  .datetime-date {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .datetime-time {
+    font-size: 26px;
+    font-weight: 300;
+    letter-spacing: -1px;
+    color: var(--accent);
+  }
+
+  @media (max-width: 650px) {
+    .datetime-header { padding: 14px 16px; }
+    .datetime-day { font-size: 20px; }
+    .datetime-time { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">🏠</div>
+    <div>
+      <div class="sidebar-logo-text">Mamak Planner</div>
+      <div class="sidebar-logo-sub">Gezinsorganisatie</div>
+    </div>
+  </div>
+
+  <div class="nav-label">Menu</div>
+
+  <button class="nav-btn active" data-page="dashboard" onclick="switchPage('dashboard')">
+    <div class="nav-icon">🏠</div> Dashboard
+  </button>
+  <button class="nav-btn" data-page="meals" onclick="switchPage('meals')">
+    <div class="nav-icon">🍽️</div> Weekmenu
+  </button>
+  <button class="nav-btn" data-page="agenda" onclick="switchPage('agenda')">
+    <div class="nav-icon">📅</div> Agenda
+  </button>
+  <button class="nav-btn" data-page="todos" onclick="switchPage('todos')">
+    <div class="nav-icon">✅</div> Taken
+  </button>
+  <button class="nav-btn" data-page="boodschappen" onclick="switchPage('boodschappen')">
+    <div class="nav-icon">🛒</div> Boodschappen
+  </button>
+
+  <div class="sidebar-user" id="sidebarUser">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <div>
+      <div class="user-name" id="userName">-</div>
+      <div class="user-role" id="userRole">-</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobiel) -->
+<div class="bottom-nav hidden" id="bottomNav">
+  <button class="bottom-nav-btn active" data-page="dashboard" onclick="switchPage('dashboard')">
+    <span class="bnav-icon">🏠</span>
+    <span class="bnav-label">Home</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="meals" onclick="switchPage('meals')">
+    <span class="bnav-icon">🍽️</span>
+    <span class="bnav-label">Menu</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="agenda" onclick="switchPage('agenda')">
+    <span class="bnav-icon">📅</span>
+    <span class="bnav-label">Agenda</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="todos" onclick="switchPage('todos')">
+    <span class="bnav-icon">✅</span>
+    <span class="bnav-label">Taken</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="boodschappen" onclick="switchPage('boodschappen')">
+    <span class="bnav-icon">🛒</span>
+    <span class="bnav-label">Boodschappen</span>
+  </button>
+</div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-logo">🏠</div>
+    <div class="login-title">Mamak Family Planner</div>
+    <div class="login-sub">Log in om door te gaan</div>
+
+    <div class="field-wrap">
+      <div class="field-label">Gebruikersnaam</div>
+      <input class="field-input" id="user" placeholder="Voer je naam in" autocomplete="username" onkeydown="if(event.key==='Enter') document.getElementById('pass').focus()">
+    </div>
+
+    <div class="field-wrap">
+      <div class="field-label">Wachtwoord</div>
+      <input class="field-input" id="pass" type="password" placeholder="Voer je wachtwoord in" autocomplete="current-password" onkeydown="if(event.key==='Enter') loginUser()">
+    </div>
+
+    <div class="login-error" id="loginError">❌ Onjuiste gebruikersnaam of wachtwoord</div>
+
+    <button class="btn-primary" onclick="loginUser()">Inloggen</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+  <!-- REFRESH BAR -->
+  <div class="refresh-bar" id="refreshBar">
+    <div class="refresh-bar-left">
+      <div class="refresh-dot"></div>
+      <span id="refreshLabel">Laatste update: zojuist</span>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
+      <span class="refresh-icon">↻</span> Verversen
+    </button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="main">
+    <!-- Datum & tijd bovenaan -->
+    <div class="datetime-header">
+      <div class="datetime-day" id="dtDay">Vrijdag</div>
+      <div class="datetime-right">
+        <div class="datetime-date" id="dtDate">4 april 2025</div>
+        <div class="datetime-time" id="dtTime">00:00</div>
+      </div>
+    </div>
+
+    <!-- Weer widget -->
+    <div class="weather-card" id="weatherCard" style="margin-bottom:16px;">
+      <div class="weather-top">
+        <div>
+          <div class="weather-city">📍 Tilburg</div>
+          <div class="weather-temp" id="weatherTemp">--°</div>
+          <div class="weather-desc" id="weatherDesc">Laden...</div>
+        </div>
+        <div class="weather-icon" id="weatherIcon">🌤️</div>
+      </div>
+      <div class="weather-details">
+        <div class="weather-detail"><span>Neerslag</span><span id="weatherRain">--%</span></div>
+        <div class="weather-detail"><span>Windkracht</span><span id="weatherWind">-- km/h</span></div>
+        <div class="weather-detail"><span>Gevoelstemp.</span><span id="weatherFeels">--°</span></div>
+      </div>
+    </div>
+
+    <!-- Menu van de dag -->
+    <div class="today-meal-card" onclick="goToTodayMenu()" style="margin-bottom:16px;">
+      <div style="font-size:12px;opacity:0.85;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">🍽️ Menu van vandaag</div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;" id="todayMeal">Laden...</div>
+      <div style="font-size:13px;opacity:0.8;margin-top:6px;">Tik om te stemmen →</div>
+    </div>
+
+    <!-- 3 stat widgets -->
+    <div class="dash-grid-3" style="margin-bottom:16px;">
+      <div class="stat-card" onclick="switchPage('agenda')" style="cursor:pointer;">
+        <div class="stat-icon" style="background:rgba(0,113,227,0.1);">📅</div>
+        <div class="stat-value" id="dashEventCount">0</div>
+        <div class="stat-label">Aankomende events</div>
+      </div>
+      <div class="stat-card" onclick="switchPage('todos')" style="cursor:pointer;">
+        <div class="stat-icon" style="background:rgba(48,209,88,0.1);">✅</div>
+        <div class="stat-value" id="dashTodoCount">0</div>
+        <div class="stat-label">Open taken</div>
+      </div>
+      <div class="stat-card" onclick="switchPage('boodschappen')" style="cursor:pointer;">
+        <div class="stat-icon" style="background:rgba(255,69,58,0.1);">🛒</div>
+        <div class="stat-value" id="dashShopCount">0</div>
+        <div class="stat-label">Boodschappen</div>
+      </div>
+    </div>
+
+    <!-- Aankomende afspraken -->
+    <div class="card">
+      <div class="card-title">📅 Aankomende afspraken</div>
+      <div id="dashEvents">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">Geen afspraken</div>
+          <div class="empty-sub">Voeg afspraken toe in de agenda</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKMENU -->
+  <div id="meals" class="main hidden">
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="mealsPageTitle">🍽️ Menu vandaag</div>
+        <div class="page-sub" id="mealsPageSub">Stem op je favoriete maaltijd</div>
+      </div>
+      <button id="mealsToggleBtn" onclick="toggleMealsView()" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--card);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Hele week</button>
+    </div>
+    <div class="meals-grid" id="mealsGrid"></div>
+  </div>
+
+  <!-- AGENDA -->
+  <div id="agenda" class="main hidden">
+    <div class="page-header">
+      <div>
+        <div class="page-title">📅 Agenda</div>
+        <div class="page-sub">Beheer je gezinsafspraken</div>
+      </div>
+    </div>
+    <div class="agenda-layout">
+      <div>
+        <div id="agendaEmpty" class="empty-state" style="display:none;">
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">Geen afspraken gepland</div>
+          <div class="empty-sub">Voeg een afspraak toe rechts</div>
+        </div>
+        <div class="events-list" id="eventsList"></div>
+      </div>
+      <div class="form-card">
+        <div class="card-title">Nieuwe afspraak</div>
+        <div class="form-field">
+          <input class="form-input" id="evTitle" placeholder="Beschrijving...">
+        </div>
+        <div class="form-field">
+          <input class="form-input" id="evDate" type="date">
+        </div>
+        <div class="form-field">
+          <input class="form-input" id="evTime" type="time">
+        </div>
+        <div class="form-field">
+          <select class="select-input" id="evFor">
+            <option value="">Voor het hele gezin</option>
+            <option value="Ugur">Ugur</option>
+            <option value="Nergul">Nergul</option>
+            <option value="Ali">Ali</option>
+            <option value="Elyesa">Elyesa</option>
+          </select>
+        </div>
+        <button class="btn-add" onclick="addEvent()">+ Toevoegen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAKEN -->
+  <div id="todos" class="main hidden">
+    <div class="page-header">
+      <div>
+        <div class="page-title">✅ Taken</div>
+        <div class="page-sub">Verdeel taken in het gezin</div>
+      </div>
+    </div>
+    <div class="agenda-layout">
+      <div class="card">
+        <div class="card-title">Openstaande taken</div>
+        <div id="todoEmpty" class="empty-state" style="display:none;">
+          <div class="empty-icon">🎉</div>
+          <div class="empty-text">Alles gedaan!</div>
+          <div class="empty-sub">Voeg nieuwe taken toe</div>
+        </div>
+        <div id="todoList"></div>
+      </div>
+      <div class="form-card">
+        <div class="card-title">Nieuwe taak</div>
+        <div class="form-field">
+          <input class="form-input" id="todoText" placeholder="Wat moet er gedaan worden?">
+        </div>
+        <div class="form-field">
+          <select class="select-input" id="todoAssignee">
+            <option value="">Voor iedereen</option>
+            <option value="Ugur">Ugur</option>
+            <option value="Nergul">Nergul</option>
+            <option value="Ali">Ali</option>
+            <option value="Elyesa">Elyesa</option>
+          </select>
+        </div>
+        <button class="btn-add" onclick="addTodo()">+ Toevoegen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOODSCHAPPEN -->
+  <div id="boodschappen" class="main hidden">
+    <div class="page-header">
+      <div>
+        <div class="page-title">🛒 Boodschappenlijst</div>
+        <div class="page-sub">Voeg producten toe en vink ze af</div>
+      </div>
+    </div>
+    <div class="agenda-layout">
+      <div>
+        <div id="shopEmpty" class="empty-state card" style="display:none;">
+          <div class="empty-icon">🛒</div>
+          <div class="empty-text">Lijst is leeg</div>
+          <div class="empty-sub">Voeg producten toe rechts</div>
+        </div>
+        <div id="shopList"></div>
+        <button id="clearBoughtBtn" onclick="clearBought()" style="display:none;margin-top:12px;padding:9px 16px;border:none;border-radius:var(--radius-sm);background:var(--bg);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Verwijder afgevinkte items</button>
+      </div>
+      <div class="form-card">
+        <div class="card-title">Product toevoegen</div>
+        <div class="form-field">
+          <input class="form-input" id="shopName" placeholder="Productnaam...">
+        </div>
+        <div class="form-field">
+          <input class="form-input" id="shopQty" placeholder="Hoeveelheid (bijv. 2x, 500g)">
+        </div>
+        <div class="form-field">
+          <select class="select-input" id="shopCat">
+            <option value="Groente & Fruit">🥦 Groente & Fruit</option>
+            <option value="Zuivel">🥛 Zuivel</option>
+            <option value="Vlees & Vis">🥩 Vlees & Vis</option>
+            <option value="Brood & Bakkerij">🍞 Brood & Bakkerij</option>
+            <option value="Dranken">🧃 Dranken</option>
+            <option value="Overig">🛍️ Overig</option>
+          </select>
+        </div>
+        <button class="btn-add" onclick="addShopItem()">+ Toevoegen</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const users = [
+  {username:"Ugur",   password:"Mamak", role:"admin",   color:"#0071e3"},
+  {username:"Nergul", password:"Mamak", role:"admin",   color:"#ff375f"},
+  {username:"Ali",    password:"Mamak", role:"kind",    color:"#30d158"},
+  {username:"Elyesa", password:"Mamak", role:"kind",    color:"#ff9f0a"}
+];
+
+const week = ["Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag"];
+const weekEn = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const months = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+const monthsFull = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
+
+const mealsPerDay = {
+  Maandag:["Mercimek çorbası","Yoğurt çorbası","Şehriye çorbası"],
+  Dinsdag:["Zalm uit de oven","Köfte uit de oven"],
+  Woensdag:["Macaroni","Spaghetti","Mantı"],
+  Donderdag:["Brooddag 🍞"],
+  Vrijdag:["Taco's","Broodje kip","Kipsalon"]
+};
+
+let currentUser = null;
+let mealsShowAll = false;
+let lastRefresh = new Date();
+let autoRefreshInterval = null;
+let votes = JSON.parse(localStorage.getItem("fp_votes") || "{}");
+let events = JSON.parse(localStorage.getItem("fp_events") || "[]");
+let todos = JSON.parse(localStorage.getItem("fp_todos") || "[]");
+let shopItems = JSON.parse(localStorage.getItem("fp_shop") || "[]");
+
+function save(){
+  localStorage.setItem("fp_votes", JSON.stringify(votes));
+  localStorage.setItem("fp_events", JSON.stringify(events));
+  localStorage.setItem("fp_todos", JSON.stringify(todos));
+  localStorage.setItem("fp_shop", JSON.stringify(shopItems));
+}
+
+/* ─── KLOK ─── */
+const dagNamen = ["Zondag","Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag"];
+function updateClock(){
+  const now = new Date();
+  const dag = dagNamen[now.getDay()];
+  const datum = now.toLocaleDateString("nl-NL",{day:"numeric", month:"long", year:"numeric"});
+  const tijd = now.toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"});
+  const dtDay = document.getElementById("dtDay");
+  const dtDate = document.getElementById("dtDate");
+  const dtTime = document.getElementById("dtTime");
+  if(dtDay) dtDay.textContent = dag;
+  if(dtDate) dtDate.textContent = datum;
+  if(dtTime) dtTime.textContent = tijd;
+}
+setInterval(updateClock, 1000);
+
+/* ─── SESSION / AUTO-LOGIN ─── */
+function startApp(user){
+  currentUser = user;
+  localStorage.setItem("fp_session", user.username);
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("sidebar").style.display = "flex";
+  document.getElementById("bottomNav").classList.remove("hidden");
+  document.getElementById("app").classList.remove("hidden");
+
+  document.getElementById("userName").textContent = user.username;
+  document.getElementById("userRole").textContent = user.role === "admin" ? "👑 Ouder" : "👦 Kind";
+  document.getElementById("userAvatar").textContent = user.username[0];
+  document.getElementById("userAvatar").style.background = `linear-gradient(135deg, ${user.color}, ${user.color}aa)`;
+
+  updateClock();
+  loadWeather();
+  renderMeals();
+  initAgendaForm();
+  renderEvents();
+  renderTodos();
+  renderShop();
+  renderDashboard();
+  startAutoRefresh();
+}
+
+/* ─── LOGIN ─── */
+function loginUser(){
+  const u = document.getElementById("user").value.trim();
+  const p = document.getElementById("pass").value;
+  const user = users.find(x => x.username === u && x.password === p);
+
+  if(!user){
+    const err = document.getElementById("loginError");
+    err.style.display = "block";
+    document.getElementById("user").style.borderColor = "var(--red)";
+    document.getElementById("pass").style.borderColor = "var(--red)";
+    return;
+  }
+  startApp(user);
+}
+
+/* ─── CHECK AUTO-LOGIN ─── */
+(function checkSession(){
+  const saved = localStorage.getItem("fp_session");
+  if(saved){
+    const user = users.find(x => x.username === saved);
+    if(user){ startApp(user); return; }
+  }
+  // Geen sessie: toon login
+})();
+
+/* ─── WEATHER ─── */
+async function loadWeather(){
+  try {
+    // Tilburg coordinates
+    const lat = 51.5719, lon = 5.0672;
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=precipitation_probability,apparent_temperature,windspeed_10m&timezone=Europe%2FAmsterdam`);
+    const data = await res.json();
+    const cw = data.current_weather;
+    const temp = Math.round(cw.temperature);
+    const wind = Math.round(cw.windspeed);
+
+    // Get current hour index for hourly data
+    const now = new Date();
+    const hourIdx = now.getHours();
+    const feels = Math.round(data.hourly.apparent_temperature[hourIdx]);
+    const rain = data.hourly.precipitation_probability[hourIdx];
+
+    const wc = cw.weathercode;
+    let icon = "☀️", desc = "Zonnig";
+    if(wc <= 1){ icon = "☀️"; desc = "Zonnig"; }
+    else if(wc <= 3){ icon = "⛅"; desc = "Bewolkt"; }
+    else if(wc <= 48){ icon = "🌫️"; desc = "Mistig"; }
+    else if(wc <= 57){ icon = "🌦️"; desc = "Motregen"; }
+    else if(wc <= 67){ icon = "🌧️"; desc = "Regen"; }
+    else if(wc <= 77){ icon = "❄️"; desc = "Sneeuw"; }
+    else if(wc <= 82){ icon = "🌧️"; desc = "Buien"; }
+    else { icon = "⛈️"; desc = "Onweer"; }
+
+    document.getElementById("weatherTemp").textContent = temp + "°C";
+    document.getElementById("weatherDesc").textContent = desc;
+    document.getElementById("weatherIcon").textContent = icon;
+    document.getElementById("weatherRain").textContent = rain + "%";
+    document.getElementById("weatherWind").textContent = wind + " km/h";
+    document.getElementById("weatherFeels").textContent = feels + "°C";
+  } catch(e){
+    document.getElementById("weatherDesc").textContent = "Weer niet beschikbaar";
+  }
+}
+
+/* ─── NAVIGATION ─── */
+
+function goToTodayMenu(){
+  mealsShowAll = false;
+  renderMeals();
+  switchPage('meals');
+}
+
+function toggleMealsView(){
+  mealsShowAll = !mealsShowAll;
+  renderMeals();
+  const btn = document.getElementById("mealsToggleBtn");
+  if(btn) btn.textContent = mealsShowAll ? "Alleen vandaag" : "Hele week";
+  const title = document.getElementById("mealsPageTitle");
+  const sub = document.getElementById("mealsPageSub");
+  if(title) title.textContent = mealsShowAll ? "🍽️ Weekmenu" : "🍽️ Menu vandaag";
+  if(sub) sub.textContent = mealsShowAll ? "Stem op je favoriete maaltijd per dag" : "Stem op je favoriete maaltijd";
+}
+
+function switchPage(p){
+  const pages = ["dashboard","meals","agenda","todos","boodschappen"];
+  pages.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle("hidden", id !== p);
+  });
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === p);
+  });
+  document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === p);
+  });
+  if(p === "dashboard") renderDashboard();
+  if(p === "meals"){
+    // Via navigatiebalk: toon altijd hele week
+    mealsShowAll = true;
+    renderMeals();
+    const btn = document.getElementById("mealsToggleBtn");
+    if(btn) btn.textContent = "Alleen vandaag";
+    const title = document.getElementById("mealsPageTitle");
+    const sub = document.getElementById("mealsPageSub");
+    if(title) title.textContent = "🍽️ Weekmenu";
+    if(sub) sub.textContent = "Stem op je favoriete maaltijd per dag";
+  }
+}
+
+/* ─── DASHBOARD ─── */
+function renderDashboard(){
+  const now = new Date();
+  // Kinderen zien alleen relevante events
+  const allVisible = currentUser.role === "kind"
+    ? events.filter(e => !e.forMember || e.forMember === currentUser.username || e.addedBy === currentUser.username)
+    : events;
+
+  const upcoming = allVisible
+    .filter(e => new Date(e.date + (e.time ? "T"+e.time : "")) >= now)
+    .sort((a,b) => new Date(a.date+(a.time?"T"+a.time:"")) - new Date(b.date+(b.time?"T"+b.time:"")));
+
+  document.getElementById("dashEventCount").textContent = upcoming.length;
+  document.getElementById("dashTodoCount").textContent = todos.filter(t => !t.done).length;
+  document.getElementById("dashShopCount").textContent = shopItems.filter(s => !s.bought).length;
+
+  const dashEvents = document.getElementById("dashEvents");
+  if(upcoming.length === 0){
+    dashEvents.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Geen aankomende afspraken</div><div class="empty-sub">Voeg afspraken toe in de agenda</div></div>`;
+  } else {
+    dashEvents.innerHTML = upcoming.slice(0,5).map(e => {
+      const d = new Date(e.date);
+      const color = e.color || "var(--accent)";
+      const forLabel = e.forMember ? e.forMember : "Gezin";
+      return `<div class="event-item">
+        <div class="event-color-dot" style="background:${color}"></div>
+        <div class="event-date-badge">
+          <div class="event-day" style="color:${color}">${d.getDate()}</div>
+          <div class="event-month">${months[d.getMonth()]}</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="event-title">${e.title}</div>
+          <div class="event-weekday">${e.time ? e.time + " · " : ""}${d.toLocaleDateString("nl-NL",{weekday:"long"})}</div>
+        </div>
+        <span class="member-chip" style="background:${color}">${forLabel}</span>
+      </div>`;
+    }).join("");
+  }
+  updateToday();
+}
+
+/* ─── MAALTIJDEN ─── */
+function renderMeals(){
+  const grid = document.getElementById("mealsGrid");
+  grid.innerHTML = "";
+  const todayIdx = (new Date().getDay() + 6) % 7; // 0=Ma … 4=Vr
+
+  const daysToShow = mealsShowAll ? week : week.filter((d, i) => i === todayIdx);
+
+  if(daysToShow.length === 0){
+    grid.innerHTML = `<div class="empty-state card"><div class="empty-icon">🎉</div><div class="empty-text">Geniet van het weekend!</div><div class="empty-sub">Het weekmenu is beschikbaar van maandag t/m vrijdag</div></div>`;
+    return;
+  }
+
+  daysToShow.forEach((day) => {
+    const di = week.indexOf(day);
+    const isToday = di === todayIdx;
+    const div = document.createElement("div");
+    div.className = "day-card";
+    const isSingleOption = mealsPerDay[day].length === 1;
+
+    let optionsHTML = mealsPerDay[day].map((meal, i) => {
+      const key = day + "-" + i;
+      const voters = votes[key] || [];
+      const count = voters.length;
+      const hasVoted = voters.includes(currentUser.username);
+
+      let maxVotes = 0;
+      mealsPerDay[day].forEach((m, j) => {
+        const c = (votes[day+"-"+j]||[]).length;
+        if(c > maxVotes) maxVotes = c;
+      });
+      const isWinner = isSingleOption || (count > 0 && count === maxVotes);
+
+      return `<div class="meal-option ${hasVoted ? 'voted' : ''} ${isWinner ? 'winner' : ''}">
+        <div>
+          <div class="meal-name">${isWinner ? '🏆 ' : ''}${meal}</div>
+          <div class="meal-voters">${isSingleOption ? 'Vaste dag' : count > 0 ? voters.join(", ") : "Nog geen stemmen"}</div>
+        </div>
+        <div class="meal-actions">
+          ${!isSingleOption ? `<span class="vote-count">${count}</span>
+          <button class="vote-btn ${hasVoted ? 'active' : ''}" onclick="vote('${day}',${i})">${hasVoted ? '✓' : 'Stem'}</button>` : ''}
+          ${currentUser.username==="Ugur" && !isSingleOption ? `<button class="override-btn" onclick="override('${day}',${i})" title="Admin override">👑</button>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+
+    div.innerHTML = `<div class="day-label">${day}${isToday ? ' <span class="today-badge">Vandaag</span>' : ''}</div>${optionsHTML}`;
+    grid.appendChild(div);
+  });
+  updateToday();
+}
+
+function vote(day, index){
+  const key = day + "-" + index;
+  if(!votes[key]) votes[key] = [];
+  if(votes[key].includes(currentUser.username)){
+    votes[key] = votes[key].filter(v => v !== currentUser.username);
+  } else {
+    Object.keys(votes).forEach(k => {
+      if(k.startsWith(day + "-")) votes[k] = votes[k].filter(v => v !== currentUser.username);
+    });
+    votes[key].push(currentUser.username);
+  }
+  save();
+  renderMeals();
+}
+
+function override(day, index){
+  if(currentUser.username !== "Ugur") return;
+  Object.keys(votes).forEach(k => { if(k.startsWith(day + "-")) delete votes[k]; });
+  votes[day + "-" + index] = ["Ugur"];
+  save();
+  renderMeals();
+}
+
+function updateToday(){
+  const todayIdx = (new Date().getDay() + 6) % 7; // 0=Ma, 4=Vr, 5=Za, 6=Zo
+  const day = week[todayIdx]; // undefined in weekend
+
+  if(!day){
+    document.getElementById("todayMeal").textContent = "Geniet van het weekend! 🎉";
+    return;
+  }
+
+  // Donderdag heeft maar 1 optie, toon die altijd
+  if(mealsPerDay[day].length === 1){
+    document.getElementById("todayMeal").textContent = mealsPerDay[day][0];
+    return;
+  }
+
+  let bestMeal = "Nog niks gestemd", bestCount = 0;
+  mealsPerDay[day].forEach((meal, i) => {
+    const c = (votes[day + "-" + i] || []).length;
+    if(c > bestCount){ bestCount = c; bestMeal = meal; }
+  });
+  document.getElementById("todayMeal").textContent = bestCount > 0 ? bestMeal : "Nog niks gestemd";
+}
+
+/* ─── AGENDA ─── */
+function initAgendaForm(){
+  const sel = document.getElementById("evFor");
+  sel.innerHTML = '<option value="">Voor het hele gezin</option>';
+  if(currentUser.role === "admin"){
+    // Ouders mogen voor iedereen plannen
+    users.forEach(u => {
+      const o = document.createElement("option");
+      o.value = u.username; o.textContent = u.username;
+      sel.appendChild(o);
+    });
+  } else {
+    // Kinderen mogen alleen voor zichzelf
+    const o = document.createElement("option");
+    o.value = currentUser.username; o.textContent = currentUser.username;
+    sel.appendChild(o);
+    sel.value = currentUser.username;
+  }
+}
+
+function getMemberColor(username){
+  const u = users.find(x => x.username === username);
+  return u ? u.color : "var(--accent)";
+}
+
+function addEvent(){
+  const title = document.getElementById("evTitle").value.trim();
+  const date = document.getElementById("evDate").value;
+  const time = document.getElementById("evTime").value;
+  const forMember = document.getElementById("evFor").value;
+  if(!title || !date) return;
+
+  // Permissie check: kinderen mogen niet voor ouders plannen
+  if(currentUser.role === "kind" && (forMember === "Ugur" || forMember === "Nergul" || forMember === "")){
+    // kinderen mogen wel "heel gezin" niet kiezen, maar voor de zekerheid:
+    // reset naar zichzelf
+    document.getElementById("evFor").value = currentUser.username;
+    return;
+  }
+
+  const color = forMember ? getMemberColor(forMember) : currentUser.color;
+  events.push({title, date, time, forMember, color, addedBy: currentUser.username, id: Date.now()});
+  events.sort((a,b) => {
+    const da = new Date(a.date + (a.time ? "T"+a.time : ""));
+    const db = new Date(b.date + (b.time ? "T"+b.time : ""));
+    return da - db;
+  });
+  save();
+  document.getElementById("evTitle").value = "";
+  document.getElementById("evDate").value = "";
+  document.getElementById("evTime").value = "";
+  if(currentUser.role === "admin") document.getElementById("evFor").value = "";
+  renderEvents();
+}
+
+function deleteEvent(id){
+  const ev = events.find(e => e.id === id);
+  if(!ev) return;
+  // Kinderen mogen alleen eigen events verwijderen
+  if(currentUser.role === "kind" && ev.addedBy !== currentUser.username) return;
+  events = events.filter(e => e.id !== id);
+  save();
+  renderEvents();
+}
+
+function renderEvents(){
+  const list = document.getElementById("eventsList");
+  const empty = document.getElementById("agendaEmpty");
+  if(!list) return;
+
+  // Kinderen zien alleen gezinsevents + eigen events
+  const visible = currentUser.role === "kind"
+    ? events.filter(e => !e.forMember || e.forMember === currentUser.username || e.addedBy === currentUser.username)
+    : events;
+
+  if(visible.length === 0){
+    list.innerHTML = "";
+    if(empty) empty.style.display = "block";
+    return;
+  }
+  if(empty) empty.style.display = "none";
+
+  list.innerHTML = visible.map(e => {
+    const d = new Date(e.date);
+    const color = e.color || "var(--accent)";
+    const forLabel = e.forMember ? e.forMember : "Gezin";
+    const canDelete = currentUser.role === "admin" || e.addedBy === currentUser.username;
+    return `<div class="agenda-event" style="border-left-color:${color}">
+      <div class="agenda-date-box" style="background:${color}">
+        <div class="agenda-date-day">${d.getDate()}</div>
+        <div class="agenda-date-month">${months[d.getMonth()]}</div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="agenda-event-title">${e.title}</div>
+        <div class="agenda-event-sub">${e.time ? e.time + " · " : ""}${d.toLocaleDateString("nl-NL",{weekday:"long", day:"numeric", month:"long"})}</div>
+      </div>
+      <span class="member-chip" style="background:${color}">${forLabel}</span>
+      ${canDelete ? `<button class="agenda-delete" onclick="deleteEvent(${e.id})">✕</button>` : ""}
+    </div>`;
+  }).join("");
+}
+
+/* ─── TODOS ─── */
+function addTodo(){
+  const text = document.getElementById("todoText").value.trim();
+  const assignee = document.getElementById("todoAssignee").value;
+  if(!text) return;
+  todos.push({text, assignee, done: false, id: Date.now()});
+  save();
+  document.getElementById("todoText").value = "";
+  renderTodos();
+}
+
+function toggleTodo(id){
+  const t = todos.find(t => t.id === id);
+  if(t) t.done = !t.done;
+  save();
+  renderTodos();
+}
+
+function deleteTodo(id){
+  todos = todos.filter(t => t.id !== id);
+  save();
+  renderTodos();
+}
+
+function renderTodos(){
+  const list = document.getElementById("todoList");
+  const empty = document.getElementById("todoEmpty");
+  if(!list) return;
+  if(todos.length === 0){
+    list.innerHTML = "";
+    if(empty) empty.style.display = "block";
+    return;
+  }
+  if(empty) empty.style.display = "none";
+  list.innerHTML = todos.map(t => `
+    <div class="todo-item">
+      <div class="todo-check ${t.done ? 'done' : ''}" onclick="toggleTodo(${t.id})">${t.done ? '✓' : ''}</div>
+      <span class="todo-text ${t.done ? 'done' : ''}">${t.text}</span>
+      ${t.assignee ? `<span class="todo-assignee">${t.assignee}</span>` : ""}
+      <button class="todo-delete" onclick="deleteTodo(${t.id})">✕</button>
+    </div>
+  `).join("");
+}
+
+/* ─── BOODSCHAPPEN ─── */
+function addShopItem(){
+  const name = document.getElementById("shopName").value.trim();
+  const qty = document.getElementById("shopQty").value.trim();
+  const cat = document.getElementById("shopCat").value;
+  if(!name) return;
+  shopItems.push({name, qty, cat, bought: false, id: Date.now()});
+  save();
+  document.getElementById("shopName").value = "";
+  document.getElementById("shopQty").value = "";
+  renderShop();
+}
+
+function toggleShop(id){
+  const s = shopItems.find(s => s.id === id);
+  if(s) s.bought = !s.bought;
+  save();
+  renderShop();
+}
+
+function deleteShop(id){
+  shopItems = shopItems.filter(s => s.id !== id);
+  save();
+  renderShop();
+}
+
+function clearBought(){
+  shopItems = shopItems.filter(s => !s.bought);
+  save();
+  renderShop();
+}
+
+function renderShop(){
+  const container = document.getElementById("shopList");
+  const empty = document.getElementById("shopEmpty");
+  const clearBtn = document.getElementById("clearBoughtBtn");
+  if(!container) return;
+
+  if(shopItems.length === 0){
+    container.innerHTML = "";
+    if(empty) empty.style.display = "block";
+    if(clearBtn) clearBtn.style.display = "none";
+    return;
+  }
+
+  if(empty) empty.style.display = "none";
+  const hasBought = shopItems.some(s => s.bought);
+  if(clearBtn) clearBtn.style.display = hasBought ? "block" : "none";
+
+  const cats = {};
+  shopItems.forEach(s => {
+    if(!cats[s.cat]) cats[s.cat] = [];
+    cats[s.cat].push(s);
+  });
+
+  container.innerHTML = Object.entries(cats).map(([cat, items]) => `
+    <div class="shop-category">
+      <div class="shop-cat-title">${cat}</div>
+      ${items.map(s => `
+        <div class="shop-item">
+          <div class="shop-check ${s.bought ? 'bought' : ''}" onclick="toggleShop(${s.id})">${s.bought ? '✓' : ''}</div>
+          <span class="shop-item-name ${s.bought ? 'bought' : ''}">${s.name}</span>
+          ${s.qty ? `<span class="shop-qty">${s.qty}</span>` : ""}
+          <button class="shop-delete" onclick="deleteShop(${s.id})">✕</button>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+// Set min date for agenda
+document.getElementById("evDate").min = new Date().toISOString().split("T")[0];
+
+/* ─── REFRESH & SYNC ─── */
+function reloadData(){
+  votes     = JSON.parse(localStorage.getItem("fp_votes")  || "{}");
+  events    = JSON.parse(localStorage.getItem("fp_events") || "[]");
+  todos     = JSON.parse(localStorage.getItem("fp_todos")  || "[]");
+  shopItems = JSON.parse(localStorage.getItem("fp_shop")   || "[]");
+}
+
+function refreshAll(silent){
+  reloadData();
+  renderMeals();
+  renderEvents();
+  renderTodos();
+  renderShop();
+  renderDashboard();
+  lastRefresh = new Date();
+  updateRefreshLabel();
+  if(!silent) showToast("✓ Bijgewerkt");
+}
+
+function manualRefresh(){
+  const btn = document.getElementById("refreshBtn");
+  btn.classList.add("spinning");
+  setTimeout(() => {
+    refreshAll(false);
+    btn.classList.remove("spinning");
+  }, 500);
+}
+
+function updateRefreshLabel(){
+  const el = document.getElementById("refreshLabel");
+  if(!el) return;
+  const diff = Math.round((new Date() - lastRefresh) / 1000);
+  if(diff < 10) el.textContent = "Laatste update: zojuist";
+  else if(diff < 60) el.textContent = `Laatste update: ${diff}s geleden`;
+  else el.textContent = `Laatste update: ${Math.round(diff/60)}m geleden`;
+}
+
+function showToast(msg){
+  const t = document.getElementById("syncToast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function startAutoRefresh(){
+  if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+  // Auto-refresh elke 30 seconden
+  autoRefreshInterval = setInterval(() => {
+    refreshAll(true); // stil, geen toast
+  }, 30000);
+  // Label elke 10 seconden bijwerken
+  setInterval(updateRefreshLabel, 10000);
+}
+</script>
+<!-- SYNC TOAST -->
+<div class="sync-toast" id="syncToast"></div>
+
+</body>
+</html>
