@@ -1533,7 +1533,48 @@ function saveCache(){
   localStorage.setItem("cache_shop",   JSON.stringify(shopItems));
 }
 
-/* ─── JSONBIN SYNC ─── */
+/* ─── PUSH NOTIFICATIES ─── */
+const VAPID_PUBLIC = "BKJQcII6_W4BhUXtVEhWSB4nNsAz0U-JfGSSqk72ckNnV4FYr-5lsbtiViqLt6Oxp3kahTEBvCLaE1v1yTtUMew";
+const WORKER_URL   = "https://mamak-push.umtt.workers.dev";
+
+async function initPush(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted') return;
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+    });
+
+    // Sla subscription op via worker
+    await fetch(`${WORKER_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub, username: currentUser.username })
+    });
+  } catch(e){ console.warn("Push init fout:", e); }
+}
+
+async function sendPushNotification(title, body){
+  if(!WORKER_URL || WORKER_URL.includes('VERVANG')) return;
+  try {
+    await fetch(`${WORKER_URL}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, sender: currentUser.username })
+    });
+  } catch(e){ console.warn("Push versturen fout:", e); }
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
 const JB_KEY  = "$2a$10$1O6R6Xoo0cqOKGbFvulKPeanxMqbdfbiS079uC2eUnRxbXBbrErcm";
 const JB_BASE = "https://api.jsonbin.io/v3/b";
 const BINS = {
@@ -1673,6 +1714,7 @@ function startApp(user){
   renderShop();
   renderDashboard();
   startAutoRefresh();
+  initPush();
 }
 
 /* ─── LOGIN ─── */
@@ -1958,6 +2000,10 @@ function addEvent(){
     return da - db;
   });
   save();
+  sendPushNotification(
+    `📅 Nieuwe afspraak van ${currentUser.username}`,
+    `${title}${forMember ? ' · voor ' + forMember : ''}`
+  );
   document.getElementById("evTitle").value = "";
   document.getElementById("evDate").value = "";
   document.getElementById("evTime").value = "";
@@ -2117,6 +2163,10 @@ function addTodo(){
   if(!text) return;
   todos.push({text, assignee, done: false, id: Date.now()});
   save();
+  sendPushNotification(
+    `✅ Nieuwe taak van ${currentUser.username}`,
+    assignee ? `${text} · voor ${assignee}` : text
+  );
   document.getElementById("todoText").value = "";
   renderTodos();
 }
@@ -2162,6 +2212,10 @@ function addShopItem(){
   if(!name) return;
   shopItems.push({name, qty, cat, bought: false, id: Date.now()});
   save();
+  sendPushNotification(
+    `🛒 Boodschap toegevoegd door ${currentUser.username}`,
+    qty ? `${name} (${qty})` : name
+  );
   document.getElementById("shopName").value = "";
   document.getElementById("shopQty").value = "";
   renderShop();
