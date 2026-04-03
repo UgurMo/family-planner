@@ -1170,6 +1170,18 @@
       <div style="font-size:13px;opacity:0.8;margin-top:6px;">Tik om te stemmen →</div>
     </div>
 
+    <!-- Aankomende afspraken -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">📅 Aankomende afspraken</div>
+      <div id="dashEvents">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">Geen afspraken</div>
+          <div class="empty-sub">Voeg afspraken toe in de agenda</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 3 stat widgets -->
     <div class="dash-grid-3" style="margin-bottom:16px;">
       <div class="stat-card" onclick="switchPage('agenda')" style="cursor:pointer;">
@@ -1188,28 +1200,15 @@
         <div class="stat-label">Boodschappen</div>
       </div>
     </div>
-
-    <!-- Aankomende afspraken -->
-    <div class="card">
-      <div class="card-title">📅 Aankomende afspraken</div>
-      <div id="dashEvents">
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <div class="empty-text">Geen afspraken</div>
-          <div class="empty-sub">Voeg afspraken toe in de agenda</div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- WEEKMENU -->
   <div id="meals" class="main hidden">
     <div class="page-header">
       <div>
-        <div class="page-title" id="mealsPageTitle">🍽️ Menu vandaag</div>
+        <div class="page-title" id="mealsPageTitle">🍽️ Menu van vandaag</div>
         <div class="page-sub" id="mealsPageSub">Stem op je favoriete maaltijd</div>
       </div>
-      <button id="mealsToggleBtn" onclick="toggleMealsView()" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--card);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Hele week</button>
     </div>
     <div class="meals-grid" id="mealsGrid"></div>
   </div>
@@ -1426,7 +1425,7 @@ async function save(){
 
 function initFirebase(){
   ghLoad();
-  pollInterval = setInterval(ghLoad, 15000);
+  pollInterval = setInterval(ghLoad, 30000);
 }
 
 function updateSyncLabel(){
@@ -1577,15 +1576,12 @@ function switchPage(p){
   });
   if(p === "dashboard") renderDashboard();
   if(p === "meals"){
-    // Via navigatiebalk: toon altijd hele week
-    mealsShowAll = true;
+    mealsShowAll = false;
     renderMeals();
-    const btn = document.getElementById("mealsToggleBtn");
-    if(btn) btn.textContent = "Alleen vandaag";
     const title = document.getElementById("mealsPageTitle");
     const sub = document.getElementById("mealsPageSub");
-    if(title) title.textContent = "🍽️ Weekmenu";
-    if(sub) sub.textContent = "Stem op je favoriete maaltijd per dag";
+    if(title) title.textContent = "🍽️ Menu van vandaag";
+    if(sub) sub.textContent = "Stem op je favoriete maaltijd";
   }
 }
 
@@ -1634,51 +1630,46 @@ function renderDashboard(){
 function renderMeals(){
   const grid = document.getElementById("mealsGrid");
   grid.innerHTML = "";
-  const todayIdx = (new Date().getDay() + 6) % 7; // 0=Ma … 4=Vr
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const day = week[todayIdx];
 
-  const daysToShow = mealsShowAll ? week : week.filter((d, i) => i === todayIdx);
-
-  if(daysToShow.length === 0){
-    grid.innerHTML = `<div class="empty-state card"><div class="empty-icon">🎉</div><div class="empty-text">Geniet van het weekend!</div><div class="empty-sub">Het weekmenu is beschikbaar van maandag t/m vrijdag</div></div>`;
+  if(!day){
+    grid.innerHTML = `<div class="empty-state card"><div class="empty-icon">🎉</div><div class="empty-text">Geniet van het weekend!</div><div class="empty-sub">Het menu is beschikbaar van maandag t/m vrijdag</div></div>`;
     return;
   }
 
-  daysToShow.forEach((day) => {
-    const di = week.indexOf(day);
-    const isToday = di === todayIdx;
-    const div = document.createElement("div");
-    div.className = "day-card";
-    const isSingleOption = mealsPerDay[day].length === 1;
+  const div = document.createElement("div");
+  div.className = "day-card";
+  const isSingleOption = mealsPerDay[day].length === 1;
 
-    let optionsHTML = mealsPerDay[day].map((meal, i) => {
-      const key = day + "-" + i;
-      const voters = votes[key] || [];
-      const count = voters.length;
-      const hasVoted = voters.includes(currentUser.username);
+  let optionsHTML = mealsPerDay[day].map((meal, i) => {
+    const key = day + "-" + i;
+    const voters = votes[key] || [];
+    const count = voters.length;
+    const hasVoted = voters.includes(currentUser.username);
 
-      let maxVotes = 0;
-      mealsPerDay[day].forEach((m, j) => {
-        const c = (votes[day+"-"+j]||[]).length;
-        if(c > maxVotes) maxVotes = c;
-      });
-      const isWinner = isSingleOption || (count > 0 && count === maxVotes);
+    let maxVotes = 0;
+    mealsPerDay[day].forEach((m, j) => {
+      const c = (votes[day+"-"+j]||[]).length;
+      if(c > maxVotes) maxVotes = c;
+    });
+    const isWinner = isSingleOption || (count > 0 && count === maxVotes);
 
-      return `<div class="meal-option ${hasVoted ? 'voted' : ''} ${isWinner ? 'winner' : ''}">
-        <div>
-          <div class="meal-name">${isWinner ? '🏆 ' : ''}${meal}</div>
-          <div class="meal-voters">${isSingleOption ? 'Vaste dag' : count > 0 ? voters.join(", ") : "Nog geen stemmen"}</div>
-        </div>
-        <div class="meal-actions">
-          ${!isSingleOption ? `<span class="vote-count">${count}</span>
-          <button class="vote-btn ${hasVoted ? 'active' : ''}" onclick="vote('${day}',${i})">${hasVoted ? '✓' : 'Stem'}</button>` : ''}
-          ${currentUser.username==="Ugur" && !isSingleOption ? `<button class="override-btn" onclick="override('${day}',${i})" title="Admin override">👑</button>` : ""}
-        </div>
-      </div>`;
-    }).join("");
+    return `<div class="meal-option ${hasVoted ? 'voted' : ''} ${isWinner ? 'winner' : ''}">
+      <div>
+        <div class="meal-name">${isWinner ? '🏆 ' : ''}${meal}</div>
+        <div class="meal-voters">${isSingleOption ? 'Vaste dag' : count > 0 ? voters.join(", ") : "Nog geen stemmen"}</div>
+      </div>
+      <div class="meal-actions">
+        ${!isSingleOption ? `<span class="vote-count">${count}</span>
+        <button class="vote-btn ${hasVoted ? 'active' : ''}" onclick="vote('${day}',${i})">${hasVoted ? '✓' : 'Stem'}</button>` : ''}
+        ${currentUser.username==="Ugur" && !isSingleOption ? `<button class="override-btn" onclick="override('${day}',${i})" title="Admin override">👑</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
 
-    div.innerHTML = `<div class="day-label">${day}${isToday ? ' <span class="today-badge">Vandaag</span>' : ''}</div>${optionsHTML}`;
-    grid.appendChild(div);
-  });
+  div.innerHTML = `<div class="day-label">${day} <span class="today-badge">Vandaag</span></div>${optionsHTML}`;
+  grid.appendChild(div);
   updateToday();
 }
 
